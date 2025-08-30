@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>批量搜索测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .highlight {
+            background: yellow;
+            padding: 2px 4px;
+            font-weight: bold;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>批量搜索功能测试页面</h1>
+    
+    <div class="instructions">
+        <h3>使用说明：</h3>
+        <ol>
+            <li>首先点击扩展图标，在弹出窗口中配置批量搜索设置</li>
+            <li>选择多个搜索引擎用于批量搜索</li>
+            <li>在下面的文本中选择任意内容</li>
+            <li>右键点击选中的文本</li>
+            <li>选择"同时搜索"选项进行批量搜索</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>电影搜索测试</h2>
+        <p>选择以下电影名称进行搜索测试：</p>
+        <ul>
+            <li><span class="highlight">肖申克的救赎</span></li>
+            <li><span class="highlight">教父</span></li>
+            <li><span class="highlight">阿甘正传</span></li>
+            <li><span class="highlight">泰坦尼克号</span></li>
+            <li><span class="highlight">星际穿越</span></li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>技术搜索测试</h2>
+        <p>选择以下技术关键词进行搜索测试：</p>
+        <ul>
+            <li><span class="highlight">JavaScript</span></li>
+            <li><span class="highlight">Chrome Extension</span></li>
+            <li><span class="highlight">Manifest V3</span></li>
+            <li><span class="highlight">Context Menu API</span></li>
+            <li><span class="highlight">Web Development</span></li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>随机文本测试</h2>
+        <p>你可以选择这段文本中的任何内容进行测试：Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+        <span class="highlight">批量搜索功能</span>允许用户在多个搜索引擎中同时搜索选中的文本内容。
+        这个功能特别适合需要对比不同搜索引擎结果的场景。</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>中英文混合测试</h2>
+        <p>测试包含中英文的搜索内容：</p>
+        <ul>
+            <li><span class="highlight">Chrome浏览器扩展开发</span></li>
+            <li><span class="highlight">Web API Documentation</span></li>
+            <li><span class="highlight">前端开发工具</span></li>
+            <li><span class="highlight">JavaScript Engine V8</span></li>
+        </ul>
+    </div>
+    
+    <div class="instructions">
+        <h3>期望结果：</h3>
+        <ul>
+            <li>如果选择了多个搜索引擎，右键菜单应该显示"同时搜索"选项</li>
+            <li>点击"同时搜索"后，应该同时在多个标签页中打开搜索结果</li>
+            <li>每个标签页的间隔时间约为300ms，避免同时打开过多标签页</li>
+            <li>第一个打开的标签页应该是活跃状态</li>
+        </ul>
+    </div>
+</body>
+</html>

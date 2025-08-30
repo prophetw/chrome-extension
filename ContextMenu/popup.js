@@ -1,6 +1,7 @@
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSearchEngines();
+  await loadBatchSearchSettings();
   
   // 绑定添加搜索引擎按钮事件
   document.getElementById('addEngineBtn').addEventListener('click', addSearchEngine);
@@ -36,7 +37,11 @@ async function loadSearchEngines() {
     
     // 绑定复选框变化事件
     const checkbox = engineDiv.querySelector(`#engine_${index}`);
-    checkbox.addEventListener('change', () => toggleEngine(index, checkbox.checked));
+    checkbox.addEventListener('change', async () => {
+      await toggleEngine(index, checkbox.checked);
+      // 重新加载批量搜索设置以更新可用选项
+      await loadBatchSearchSettings();
+    });
     
     container.appendChild(engineDiv);
   });
@@ -109,6 +114,7 @@ async function addSearchEngine() {
   
   showSaveStatus('搜索引擎添加成功');
   await loadSearchEngines();
+  await loadBatchSearchSettings();
 }
 
 // 删除搜索引擎
@@ -125,6 +131,7 @@ async function deleteEngine(index) {
     await chrome.storage.sync.set({ searchEngines });
     showSaveStatus('搜索引擎删除成功');
     await loadSearchEngines();
+    await loadBatchSearchSettings();
   }
 }
 
@@ -146,6 +153,76 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// 加载批量搜索设置
+async function loadBatchSearchSettings() {
+  const result = await chrome.storage.sync.get(['searchEngines', 'batchSearchEngines']);
+  const searchEngines = result.searchEngines || [];
+  const batchSearchEngines = result.batchSearchEngines || [];
+  
+  // 只显示启用的搜索引擎
+  const enabledEngines = searchEngines.filter(engine => engine.enabled);
+  
+  const container = document.getElementById('batchSearchList');
+  container.innerHTML = '';
+  
+  enabledEngines.forEach(engine => {
+    const isSelected = batchSearchEngines.includes(engine.id);
+    
+    const engineDiv = document.createElement('div');
+    engineDiv.className = `batch-engine ${isSelected ? 'selected' : ''}`;
+    
+    engineDiv.innerHTML = `
+      <input type="checkbox" id="batch_${engine.id}" ${isSelected ? 'checked' : ''}>
+      <div class="batch-engine-name">${escapeHtml(engine.name)}</div>
+    `;
+    
+    // 绑定复选框变化事件
+    const checkbox = engineDiv.querySelector(`#batch_${engine.id}`);
+    checkbox.addEventListener('change', () => {
+      toggleBatchEngine(engine.id, checkbox.checked);
+    });
+    
+    container.appendChild(engineDiv);
+  });
+}
+
+// 切换批量搜索引擎
+async function toggleBatchEngine(engineId, enabled) {
+  const result = await chrome.storage.sync.get(['batchSearchEngines']);
+  let batchSearchEngines = result.batchSearchEngines || [];
+  
+  if (enabled) {
+    if (!batchSearchEngines.includes(engineId)) {
+      batchSearchEngines.push(engineId);
+    }
+  } else {
+    batchSearchEngines = batchSearchEngines.filter(id => id !== engineId);
+  }
+  
+  await chrome.storage.sync.set({ batchSearchEngines });
+  await loadBatchSearchSettings();
+  showSaveStatus('批量搜索设置已保存');
+}
+
+// 全选批量搜索引擎
+async function selectAllBatch() {
+  const result = await chrome.storage.sync.get(['searchEngines']);
+  const searchEngines = result.searchEngines || [];
+  const enabledEngines = searchEngines.filter(engine => engine.enabled);
+  const batchSearchEngines = enabledEngines.map(engine => engine.id);
+  
+  await chrome.storage.sync.set({ batchSearchEngines });
+  await loadBatchSearchSettings();
+  showSaveStatus('已全选所有搜索引擎');
+}
+
+// 清空批量搜索引擎选择
+async function clearAllBatch() {
+  await chrome.storage.sync.set({ batchSearchEngines: [] });
+  await loadBatchSearchSettings();
+  showSaveStatus('已清空批量搜索选择');
 }
 
 // 全局函数供HTML调用
