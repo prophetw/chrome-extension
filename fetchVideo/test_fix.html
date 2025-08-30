@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频下载助手 - 修复验证测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        video {
+            width: 100%;
+            max-width: 500px;
+            margin: 10px 0;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 视频下载助手修复验证</h1>
+    
+    <div class="info">
+        <h3>修复内容：</h3>
+        <ul>
+            <li>✅ 修复下载按钮无响应问题</li>
+            <li>✅ 修复打开按钮无响应问题</li>
+            <li>✅ 修复复制按钮无响应问题</li>
+            <li>✅ 添加视频分辨率显示</li>
+            <li>✅ 添加视频质量信息</li>
+            <li>✅ 添加文件大小估算</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试视频 - 不同分辨率</h2>
+        
+        <h3>720p MP4 视频</h3>
+        <video controls width="1280" height="720">
+            <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4" type="video/mp4">
+        </video>
+        
+        <h3>360p MP4 视频</h3>
+        <video controls width="640" height="360">
+            <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_640x360_1mb.mp4" type="video/mp4">
+        </video>
+        
+        <h3>WebM 视频</h3>
+        <video controls>
+            <source src="https://sample-videos.com/zip/10/webm/SampleVideo_1280x720_1mb.webm" type="video/webm">
+        </video>
+    </div>
+    
+    <div class="test-section">
+        <h2>动态加载测试</h2>
+        <button class="btn" onclick="loadVideo()">加载高清视频</button>
+        <div id="dynamicVideo"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试步骤</h2>
+        <ol>
+            <li>重新加载扩展（在chrome://extensions/中点击刷新按钮）</li>
+            <li>刷新此页面</li>
+            <li>查看扩展图标是否显示数字徽章</li>
+            <li>点击扩展图标打开弹窗</li>
+            <li>验证以下功能：
+                <ul>
+                    <li>是否显示视频分辨率（如720p、360p等）</li>
+                    <li>是否显示分辨率尺寸（如1280x720）</li>
+                    <li>点击"下载"按钮是否有反应</li>
+                    <li>点击"复制"按钮是否成功复制链接</li>
+                    <li>点击"打开"按钮是否在新标签页打开</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <script>
+        function loadVideo() {
+            const container = document.getElementById('dynamicVideo');
+            container.innerHTML = `
+                <h3>动态加载的1080p视频</h3>
+                <video controls width="1920" height="1080">
+                    <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1920x1080_5mb.mp4" type="video/mp4">
+                </video>
+            `;
+            
+            console.log('动态视频已加载，扩展应该能检测到它');
+        }
+        
+        // 监听视频加载事件
+        document.addEventListener('loadeddata', function(e) {
+            if (e.target.tagName === 'VIDEO') {
+                console.log('视频已加载:', {
+                    src: e.target.currentSrc,
+                    width: e.target.videoWidth,
+                    height: e.target.videoHeight,
+                    duration: e.target.duration
+                });
+            }
+        }, true);
+    </script>
+</body>
+</html>

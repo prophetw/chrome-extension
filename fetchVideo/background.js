@@ -34,8 +34,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.type === 'DOWNLOAD_VIDEO') {
-    downloadVideo(message.video, sender.tab.id);
-    sendResponse({success: true});
+    downloadVideo(message.video, sender.tab.id)
+      .then(() => {
+        sendResponse({success: true});
+      })
+      .catch(error => {
+        console.error('下载失败:', error);
+        sendResponse({success: false, error: error.message});
+      });
+    return true; // 保持异步响应通道开放
   }
   
   if (message.type === 'CLEAR_VIDEOS') {

@@ -70,11 +70,21 @@
         return;
       }
       
-      // 重新注入content script
-      await chrome.scripting.executeScript({
-        target: {tabId: currentTab.id},
-        files: ['content.js']
+      // 清空当前视频列表
+      chrome.runtime.sendMessage({
+        type: 'CLEAR_VIDEOS',
+        tabId: currentTab.id
       });
+      
+      // 重新注入content script（使用scripting API）
+      try {
+        await chrome.scripting.executeScript({
+          target: {tabId: currentTab.id},
+          files: ['content.js']
+        });
+      } catch (scriptError) {
+        console.log('注入脚本可能失败，但继续检测:', scriptError);
+      }
       
       // 等待一段时间让检测完成
       setTimeout(() => {
@@ -144,8 +154,12 @@
       <div class="video-title" title="${escapeHtml(video.title)}">${escapeHtml(video.title)}</div>
       <div class="video-info">
         <span class="video-type" style="background: ${typeColor.bg}; color: ${typeColor.text};">${escapeHtml(video.type)}</span>
+        ${video.quality ? `<span class="video-quality">质量: ${video.quality}</span>` : ''}
         ${video.duration > 0 ? `<span>时长: ${formatDuration(video.duration)}</span>` : ''}
-        ${video.size !== 'unknown' ? `<span>尺寸: ${video.size}</span>` : ''}
+      </div>
+      <div class="video-details">
+        ${video.size !== 'unknown' ? `<span>分辨率: ${video.size}</span>` : ''}
+        ${video.fileSize !== 'unknown' ? `<span>大小: ${video.fileSize}</span>` : ''}
       </div>
       <div class="video-url" title="${escapeHtml(video.url)}">${escapeHtml(truncateUrl(video.url))}</div>
       <div class="video-actions">
@@ -187,12 +201,19 @@
         return;
       }
       
-      await chrome.runtime.sendMessage({
+      chrome.runtime.sendMessage({
         type: 'DOWNLOAD_VIDEO',
         video: video
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('发送消息失败:', chrome.runtime.lastError);
+          showToast('下载失败: ' + chrome.runtime.lastError.message, 'error');
+        } else if (response && response.success) {
+          showToast('开始下载: ' + video.title, 'success');
+        } else {
+          showToast('下载失败', 'error');
+        }
       });
-      
-      showToast('开始下载: ' + video.title, 'success');
       
     } catch (error) {
       console.error('下载失败:', error);
@@ -209,8 +230,19 @@
         return;
       }
       
-      await navigator.clipboard.writeText(video.url);
-      showToast('链接已复制', 'success');
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(video.url);
+        showToast('链接已复制', 'success');
+      } else {
+        // 备用方案：使用传统方法复制
+        const textArea = document.createElement('textarea');
+        textArea.value = video.url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast('链接已复制', 'success');
+      }
       
     } catch (error) {
       console.error('复制失败:', error);
@@ -227,8 +259,14 @@
         return;
       }
       
-      await chrome.tabs.create({ url: video.url });
-      showToast('已在新标签页打开', 'success');
+      chrome.tabs.create({ url: video.url }, (tab) => {
+        if (chrome.runtime.lastError) {
+          console.error('打开失败:', chrome.runtime.lastError);
+          showToast('打开失败: ' + chrome.runtime.lastError.message, 'error');
+        } else {
+          showToast('已在新标签页打开', 'success');
+        }
+      });
       
     } catch (error) {
       console.error('打开失败:', error);

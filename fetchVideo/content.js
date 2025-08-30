@@ -13,13 +13,10 @@
     videos.forEach(video => {
       if (video.src && !detectedUrls.has(video.src)) {
         detectedUrls.add(video.src);
-        reportVideo({
-          url: video.src,
-          type: 'video element',
-          title: getVideoTitle(video),
-          duration: video.duration || 0,
-          size: video.videoWidth && video.videoHeight ? `${video.videoWidth}x${video.videoHeight}` : 'unknown'
-        });
+        
+        // 获取详细的视频信息
+        const videoInfo = getDetailedVideoInfo(video);
+        reportVideo(videoInfo);
       }
       
       // 检测source元素
@@ -27,16 +24,96 @@
       sources.forEach(source => {
         if (source.src && !detectedUrls.has(source.src)) {
           detectedUrls.add(source.src);
-          reportVideo({
-            url: source.src,
-            type: source.type || 'video source',
-            title: getVideoTitle(video),
-            duration: video.duration || 0,
-            size: video.videoWidth && video.videoHeight ? `${video.videoWidth}x${video.videoHeight}` : 'unknown'
-          });
+          
+          // 使用父级video元素获取信息
+          const videoInfo = getDetailedVideoInfo(video, source.src, source.type);
+          reportVideo(videoInfo);
         }
       });
     });
+  }
+  
+  // 获取详细的视频信息
+  function getDetailedVideoInfo(videoElement, customUrl = null, customType = null) {
+    const url = customUrl || videoElement.src;
+    const type = customType || videoElement.getAttribute('type') || getVideoTypeFromUrl(url);
+    
+    // 获取视频尺寸信息
+    let resolution = 'unknown';
+    if (videoElement.videoWidth && videoElement.videoHeight) {
+      resolution = `${videoElement.videoWidth}x${videoElement.videoHeight}`;
+    } else if (videoElement.getAttribute('width') && videoElement.getAttribute('height')) {
+      resolution = `${videoElement.getAttribute('width')}x${videoElement.getAttribute('height')}`;
+    }
+    
+    // 获取视频质量信息
+    let quality = '';
+    if (videoElement.videoWidth) {
+      const width = videoElement.videoWidth;
+      if (width >= 3840) quality = '4K';
+      else if (width >= 2560) quality = '2K';
+      else if (width >= 1920) quality = '1080p';
+      else if (width >= 1280) quality = '720p';
+      else if (width >= 854) quality = '480p';
+      else if (width >= 640) quality = '360p';
+      else quality = '低分辨率';
+    }
+    
+    // 获取文件大小（如果可用）
+    let fileSize = 'unknown';
+    if (videoElement.buffered && videoElement.buffered.length > 0 && videoElement.duration) {
+      // 估算文件大小（粗略计算）
+      const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
+      const totalDuration = videoElement.duration;
+      if (bufferedEnd > 0 && totalDuration > 0) {
+        // 这里只是一个粗略的估算
+        const estimatedSize = Math.round((bufferedEnd / totalDuration) * 50); // 假设每秒50KB
+        if (estimatedSize > 1024) {
+          fileSize = (estimatedSize / 1024).toFixed(1) + ' MB';
+        } else {
+          fileSize = estimatedSize + ' KB';
+        }
+      }
+    }
+    
+    return {
+      url: url,
+      type: type,
+      title: getVideoTitle(videoElement),
+      duration: videoElement.duration || 0,
+      size: resolution,
+      quality: quality,
+      fileSize: fileSize,
+      width: videoElement.videoWidth || 0,
+      height: videoElement.videoHeight || 0
+    };
+  }
+  
+  // 从URL获取视频类型
+  function getVideoTypeFromUrl(url) {
+    const lowerUrl = url.toLowerCase();
+    
+    if (lowerUrl.includes('.m3u8') || lowerUrl.includes('hls')) {
+      return 'HLS (m3u8)';
+    } else if (lowerUrl.includes('.mp4')) {
+      return 'MP4';
+    } else if (lowerUrl.includes('.webm')) {
+      return 'WebM';
+    } else if (lowerUrl.includes('.flv')) {
+      return 'FLV';
+    } else if (lowerUrl.includes('.ts')) {
+      return 'TS (Transport Stream)';
+    } else if (lowerUrl.includes('.avi')) {
+      return 'AVI';
+    } else if (lowerUrl.includes('.mov')) {
+      return 'MOV';
+    } else if (lowerUrl.includes('.wmv')) {
+      return 'WMV';
+    } else if (lowerUrl.includes('.mkv')) {
+      return 'MKV';
+    } else {
+      return '视频流';
+    }
   }
   
   // 获取视频标题
@@ -91,12 +168,31 @@
         this.addEventListener('load', function() {
           if (this.status === 200 && !detectedUrls.has(url)) {
             detectedUrls.add(url);
+            
+            // 获取响应头中的内容长度
+            const contentLength = this.getResponseHeader('content-length');
+            let fileSize = 'unknown';
+            if (contentLength) {
+              const sizeBytes = parseInt(contentLength);
+              if (sizeBytes > 1024 * 1024) {
+                fileSize = (sizeBytes / 1024 / 1024).toFixed(1) + ' MB';
+              } else if (sizeBytes > 1024) {
+                fileSize = (sizeBytes / 1024).toFixed(1) + ' KB';
+              } else {
+                fileSize = sizeBytes + ' B';
+              }
+            }
+            
             reportVideo({
               url: url,
               type: getVideoTypeFromUrl(url),
               title: document.title || '网络视频',
               duration: 0,
-              size: 'unknown'
+              size: 'unknown',
+              quality: '',
+              fileSize: fileSize,
+              width: 0,
+              height: 0
             });
           }
         });
@@ -112,12 +208,31 @@
         promise.then(response => {
           if (response.ok && !detectedUrls.has(url)) {
             detectedUrls.add(url);
+            
+            // 获取响应头中的内容长度
+            const contentLength = response.headers.get('content-length');
+            let fileSize = 'unknown';
+            if (contentLength) {
+              const sizeBytes = parseInt(contentLength);
+              if (sizeBytes > 1024 * 1024) {
+                fileSize = (sizeBytes / 1024 / 1024).toFixed(1) + ' MB';
+              } else if (sizeBytes > 1024) {
+                fileSize = (sizeBytes / 1024).toFixed(1) + ' KB';
+              } else {
+                fileSize = sizeBytes + ' B';
+              }
+            }
+            
             reportVideo({
               url: url,
               type: getVideoTypeFromUrl(url),
               title: document.title || '网络视频',
               duration: 0,
-              size: 'unknown'
+              size: 'unknown',
+              quality: '',
+              fileSize: fileSize,
+              width: 0,
+              height: 0
             });
           }
         }).catch(() => {});

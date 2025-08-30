@@ -67,12 +67,34 @@
         hls.on(originalHls.Events.MANIFEST_PARSED, function(event, data) {
           const url = hls.url;
           if (url) {
+            // 获取流的分辨率信息
+            let resolution = 'unknown';
+            let quality = '';
+            if (data.levels && data.levels.length > 0) {
+              const level = data.levels[data.levels.length - 1]; // 获取最高质量
+              if (level.width && level.height) {
+                resolution = `${level.width}x${level.height}`;
+                const width = level.width;
+                if (width >= 3840) quality = '4K';
+                else if (width >= 2560) quality = '2K'; 
+                else if (width >= 1920) quality = '1080p';
+                else if (width >= 1280) quality = '720p';
+                else if (width >= 854) quality = '480p';
+                else if (width >= 640) quality = '360p';
+                else quality = '低分辨率';
+              }
+            }
+            
             dispatchVideoFound({
               url: url,
               type: 'HLS (m3u8)',
               title: document.title || 'HLS视频流',
               duration: data.totalduration || 0,
-              size: 'unknown',
+              size: resolution,
+              quality: quality,
+              fileSize: 'unknown',
+              width: data.levels && data.levels.length > 0 ? data.levels[data.levels.length - 1].width || 0 : 0,
+              height: data.levels && data.levels.length > 0 ? data.levels[data.levels.length - 1].height || 0 : 0,
               source: 'HLS.js'
             });
           }
@@ -100,12 +122,33 @@
         player.ready(() => {
           const src = player.currentSrc();
           if (src && isVideoUrl(src)) {
+            // 获取播放器的视频尺寸
+            let resolution = 'unknown';
+            let quality = '';
+            const videoWidth = player.videoWidth();
+            const videoHeight = player.videoHeight();
+            
+            if (videoWidth && videoHeight) {
+              resolution = `${videoWidth}x${videoHeight}`;
+              if (videoWidth >= 3840) quality = '4K';
+              else if (videoWidth >= 2560) quality = '2K';
+              else if (videoWidth >= 1920) quality = '1080p';
+              else if (videoWidth >= 1280) quality = '720p';
+              else if (videoWidth >= 854) quality = '480p';
+              else if (videoWidth >= 640) quality = '360p';
+              else quality = '低分辨率';
+            }
+            
             dispatchVideoFound({
               url: src,
               type: getVideoTypeFromUrl(src),
               title: document.title || 'Video.js视频',
               duration: player.duration() || 0,
-              size: 'unknown',
+              size: resolution,
+              quality: quality,
+              fileSize: 'unknown',
+              width: videoWidth || 0,
+              height: videoHeight || 0,
               source: 'Video.js'
             });
           }
@@ -200,6 +243,10 @@
               title: document.title || '页面变量中的视频',
               duration: 0,
               size: 'unknown',
+              quality: '',
+              fileSize: 'unknown',
+              width: 0,
+              height: 0,
               source: '页面变量'
             });
           }
