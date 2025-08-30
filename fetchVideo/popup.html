@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频下载助手</title>
+  <style>
+    body {
+      width: 350px;
+      min-height: 400px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+    }
+    
+    .header p {
+      margin: 5px 0 0 0;
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .video-count {
+      background: #4CAF50;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin: 10px 0;
+      text-align: center;
+    }
+    
+    .no-videos {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    
+    .no-videos .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .video-item {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      padding: 12px;
+      transition: all 0.2s ease;
+    }
+    
+    .video-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-color: #4CAF50;
+    }
+    
+    .video-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 6px;
+      word-break: break-all;
+      line-height: 1.4;
+      max-height: 2.8em;
+      overflow: hidden;
+    }
+    
+    .video-info {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .video-type {
+      display: inline-block;
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+    
+    .video-url {
+      font-family: monospace;
+      font-size: 11px;
+      color: #888;
+      word-break: break-all;
+      background: #f8f8f8;
+      padding: 4px 6px;
+      border-radius: 4px;
+      margin: 6px 0;
+      max-height: 40px;
+      overflow: hidden;
+    }
+    
+    .video-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-download {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .btn-download:hover {
+      background: #45a049;
+    }
+    
+    .btn-copy {
+      background: #2196F3;
+      color: white;
+    }
+    
+    .btn-copy:hover {
+      background: #1976D2;
+    }
+    
+    .btn-open {
+      background: #FF9800;
+      color: white;
+    }
+    
+    .btn-open:hover {
+      background: #F57C00;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .btn-control {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-control:hover {
+      background: #f0f0f0;
+      border-color: #ccc;
+    }
+    
+    .btn-refresh {
+      background: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
+    
+    .btn-refresh:hover {
+      background: #45a049;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #323232;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #4CAF50;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .help-text {
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎬 视频下载助手</h1>
+    <p>检测并下载页面中的视频</p>
+  </div>
+  
+  <div class="controls">
+    <button class="btn-control btn-refresh" id="refreshBtn">🔄 刷新检测</button>
+    <button class="btn-control" id="clearBtn">🗑️ 清空列表</button>
+  </div>
+  
+  <div id="loading" class="loading" style="display: none;">
+    <div class="spinner"></div>
+    <div>正在检测视频...</div>
+  </div>
+  
+  <div id="videoCount" class="video-count" style="display: none;"></div>
+  
+  <div id="videoList"></div>
+  
+  <div id="noVideos" class="no-videos">
+    <div class="icon">📹</div>
+    <div>未检测到视频</div>
+    <div style="font-size: 12px; margin-top: 8px; color: #999;">
+      尝试播放视频或等待页面完全加载
+    </div>
+  </div>
+  
+  <div class="help-text">
+    支持 MP4、WebM、FLV、HLS(m3u8) 等格式<br>
+    某些受保护的视频可能无法下载
+  </div>
+  
+  <div id="toast" class="toast"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
