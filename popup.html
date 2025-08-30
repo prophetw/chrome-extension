@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    
+    .search-engine {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #ddd;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      background: #f9f9f9;
+    }
+    
+    .search-engine.enabled {
+      background: #e8f5e8;
+      border-color: #4caf50;
+    }
+    
+    .search-engine input[type="checkbox"] {
+      margin-right: 10px;
+    }
+    
+    .engine-info {
+      flex: 1;
+    }
+    
+    .engine-name {
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+    
+    .engine-url {
+      font-size: 12px;
+      color: #666;
+      word-break: break-all;
+    }
+    
+    .add-engine {
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px dashed #ddd;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .add-engine input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .add-engine button {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .add-engine button:hover {
+      background: #45a049;
+    }
+    
+    .delete-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    
+    .delete-btn:hover {
+      background: #d32f2f;
+    }
+    
+    .save-status {
+      text-align: center;
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .save-status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>自定义搜索设置</h2>
+    <p>管理右键菜单中的搜索引擎</p>
+  </div>
+  
+  <div id="searchEnginesList"></div>
+  
+  <div class="add-engine">
+    <h3>添加新搜索引擎</h3>
+    <input type="text" id="newEngineName" placeholder="搜索引擎名称（如：Wikipedia）">
+    <input type="text" id="newEngineUrl" placeholder="搜索URL（用 %s 代替搜索词）">
+    <div class="help-text">
+      示例URL: https://zh.wikipedia.org/wiki/%s
+    </div>
+    <button id="addEngineBtn">添加搜索引擎</button>
+  </div>
+  
+  <div id="saveStatus" class="save-status"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

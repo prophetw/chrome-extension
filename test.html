@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome自定义搜索扩展 - 测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .step {
+            margin: 10px 0;
+        }
+        .code {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chrome自定义搜索扩展测试</h1>
+    
+    <div class="demo-section">
+        <h2>🎯 扩展功能测试</h2>
+        <p>请按照以下步骤测试扩展功能：</p>
+        
+        <div class="step">
+            <strong>步骤1：</strong> 选中下面的文字，然后右键点击
+        </div>
+        
+        <div class="step">
+            <strong>测试文字：</strong> 
+            <span class="highlight">JavaScript异步编程</span>
+        </div>
+        
+        <div class="step">
+            <strong>步骤2：</strong> 在右键菜单中查找"自定义搜索"选项
+        </div>
+        
+        <div class="step">
+            <strong>步骤3：</strong> 选择一个搜索引擎进行搜索
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>📝 更多测试内容</h2>
+        <p>以下是一些可以用来测试搜索功能的示例文字：</p>
+        
+        <ul>
+            <li><span class="highlight">Chrome扩展开发</span></li>
+            <li><span class="highlight">React Hooks</span></li>
+            <li><span class="highlight">Node.js教程</span></li>
+            <li><span class="highlight">人工智能算法</span></li>
+            <li><span class="highlight">Vue.js框架</span></li>
+            <li><span class="highlight">Python数据分析</span></li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h2>⚙️ 扩展设置</h2>
+        <p>点击浏览器工具栏中的扩展图标可以：</p>
+        <ul>
+            <li>启用或禁用预置的搜索引擎（Google、百度、Bing）</li>
+            <li>添加自定义搜索引擎</li>
+            <li>删除自定义添加的搜索引擎</li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h2>🔧 自定义搜索引擎示例</h2>
+        <p>您可以添加以下搜索引擎：</p>
+        
+        <div class="code">
+            <strong>维基百科：</strong><br>
+            名称：Wikipedia<br>
+            URL：https://zh.wikipedia.org/wiki/%s
+        </div>
+        
+        <div class="code">
+            <strong>GitHub代码搜索：</strong><br>
+            名称：GitHub<br>
+            URL：https://github.com/search?q=%s
+        </div>
+        
+        <div class="code">
+            <strong>Stack Overflow：</strong><br>
+            名称：Stack Overflow<br>
+            URL：https://stackoverflow.com/search?q=%s
+        </div>
+        
+        <div class="code">
+            <strong>知乎：</strong><br>
+            名称：知乎<br>
+            URL：https://www.zhihu.com/search?q=%s
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>📋 安装说明</h2>
+        <ol>
+            <li>打开Chrome浏览器</li>
+            <li>访问 <code>chrome://extensions/</code></li>
+            <li>开启右上角的"开发者模式"</li>
+            <li>点击"加载已解压的扩展程序"</li>
+            <li>选择本项目的文件夹</li>
+            <li>扩展安装完成后，刷新本页面测试功能</li>
+        </ol>
+    </div>
+</body>
+</html>
