@@ -200,9 +200,9 @@ function createVideoItem(video, template) {
   
   // 为流媒体格式添加特殊标识
   if (video.type === 'hls' || video.url.toLowerCase().includes('.m3u8')) {
-    formatText = '🎬 HLS (M3U8)'; // HLS流添加电影图标和说明
+    formatText = '🎬 HLS (自动合并)'; // HLS流添加电影图标和说明
     format.classList.add('streaming-format');
-    format.title = 'HTTP Live Streaming - 将分段下载并自动合并';
+    format.title = 'HTTP Live Streaming - 将自动下载所有片段并合并成完整视频';
   } else if (video.type === 'dash') {
     formatText = '📺 ' + formatText; // DASH流添加电视图标
     format.classList.add('streaming-format');
@@ -316,7 +316,7 @@ async function downloadVideo(video) {
     const isM3u8 = video.url && (video.url.toLowerCase().includes('.m3u8') || video.type === 'hls');
     
     if (isM3u8) {
-      showDownloadStatus('正在解析 M3U8 文件...');
+      showDownloadStatus('正在解析 M3U8 文件并准备合并下载...');
     }
     
     const response = await chrome.runtime.sendMessage({
@@ -326,7 +326,7 @@ async function downloadVideo(video) {
     
     if (response && response.success) {
       if (isM3u8) {
-        showDownloadStatus('M3U8 下载已开始，将分段下载视频...');
+        showDownloadStatus('M3U8 下载已开始，将自动下载并合并所有片段...');
         videoItem?.classList.add('success');
         
         // 对于 M3U8，显示更长时间的成功状态

@@ -415,59 +415,112 @@ function getBaseUrl(url) {
   }
 }
 
-// 分段下载 M3U8 视频片段
+// 分段下载 M3U8 视频片段并合并
 async function downloadM3u8Segments(downloadTask) {
   const { segments, videoData } = downloadTask;
   
   try {
-    // 串行下载片段以避免服务器压力
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      console.log(`下载片段 ${i + 1}/${segments.length}: ${segment.url}`);
+    // 创建一个数组来存储下载的片段数据
+    const segmentBlobs = [];
+    const segmentData = new Array(segments.length);
+    
+    console.log(`开始下载 ${segments.length} 个片段...`);
+    
+    // 并行下载片段（限制并发数量以避免服务器压力）
+    const concurrentLimit = 3;
+    const downloadPromises = [];
+    
+    for (let i = 0; i < segments.length; i += concurrentLimit) {
+      const batch = segments.slice(i, i + concurrentLimit);
+      const batchPromises = batch.map(async (segment, batchIndex) => {
+        const segmentIndex = i + batchIndex;
+        
+        try {
+          console.log(`下载片段 ${segmentIndex + 1}/${segments.length}: ${segment.url}`);
+          
+          // 使用 fetch 下载片段数据
+          const response = await fetch(segment.url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const blob = await response.blob();
+          segmentData[segmentIndex] = {
+            index: segmentIndex,
+            blob: blob,
+            url: segment.url,
+            size: blob.size
+          };
+          
+          downloadTask.downloadedSegments.push({
+            index: segmentIndex,
+            url: segment.url,
+            size: blob.size,
+            success: true
+          });
+          
+          downloadTask.currentIndex = Math.max(downloadTask.currentIndex, segmentIndex + 1);
+          
+          // 更新进度
+          const progress = Math.round((downloadTask.currentIndex) / segments.length * 80); // 80% 用于下载，20% 用于合并
+          updateDownloadProgress(downloadTask.id, progress, `下载片段 ${downloadTask.currentIndex}/${segments.length}`);
+          
+        } catch (error) {
+          console.error(`片段 ${segmentIndex + 1} 下载失败:`, error);
+          downloadTask.downloadedSegments.push({
+            index: segmentIndex,
+            error: error.message,
+            url: segment.url,
+            success: false
+          });
+        }
+      });
       
-      try {
-        // 下载单个片段
-        const downloadId = await chrome.downloads.download({
-          url: segment.url,
-          filename: `FetchVideo/temp/${downloadTask.id}/segment_${i.toString().padStart(4, '0')}.ts`,
-          conflictAction: 'uniquify'
-        });
-        
-        downloadTask.downloadedSegments.push({
-          index: i,
-          downloadId: downloadId,
-          url: segment.url,
-          filename: `segment_${i.toString().padStart(4, '0')}.ts`
-        });
-        
-        downloadTask.currentIndex = i + 1;
-        
-        // 更新进度
-        const progress = Math.round((i + 1) / segments.length * 100);
-        updateDownloadProgress(downloadTask.id, progress);
-        
-        // 等待片段下载完成
-        await waitForDownloadComplete(downloadId);
-        
-        // 添加小延迟避免过快请求
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-      } catch (error) {
-        console.error(`片段 ${i + 1} 下载失败:`, error);
-        // 记录失败但继续下载其他片段
-        downloadTask.downloadedSegments.push({
-          index: i,
-          error: error.message,
-          url: segment.url
-        });
+      downloadPromises.push(...batchPromises);
+      
+      // 等待当前批次完成再开始下一批次
+      await Promise.all(batchPromises);
+      
+      // 添加小延迟避免过快请求
+      if (i + concurrentLimit < segments.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
     
+    // 等待所有下载完成
+    await Promise.all(downloadPromises);
+    
+    console.log('所有片段下载完成，开始合并...');
+    updateDownloadProgress(downloadTask.id, 85, '正在合并视频片段...');
+    
+    // 过滤出成功下载的片段并按顺序排列
+    const validSegments = segmentData.filter(segment => segment && segment.blob);
+    validSegments.sort((a, b) => a.index - b.index);
+    
+    if (validSegments.length === 0) {
+      throw new Error('没有成功下载任何片段');
+    }
+    
+    console.log(`成功下载 ${validSegments.length}/${segments.length} 个片段，开始合并`);
+    
+    // 合并所有片段
+    const mergedBlob = await mergeVideoSegments(validSegments.map(s => s.blob));
+    
+    updateDownloadProgress(downloadTask.id, 95, '正在保存合并后的视频...');
+    
+    // 创建下载链接并触发下载
+    const fileName = generateMergedFileName(videoData);
+    await downloadMergedFile(mergedBlob, fileName, downloadTask);
+    
     downloadTask.status = 'completed';
     downloadTask.endTime = Date.now();
+    downloadTask.mergedFileSize = mergedBlob.size;
+    downloadTask.successfulSegments = validSegments.length;
     
     // 更新下载任务状态
     await storeDownloadTask(downloadTask);
+    
+    updateDownloadProgress(downloadTask.id, 100, '下载完成！');
     
     // 发送完成通知
     try {
@@ -476,14 +529,14 @@ async function downloadM3u8Segments(downloadTask) {
           type: 'basic',
           iconUrl: 'icons/icon48.png',
           title: 'FetchVideo - 下载完成',
-          message: `M3U8 视频下载完成！已下载 ${downloadTask.downloadedSegments.filter(s => !s.error).length} 个片段`
+          message: `M3U8 视频合并完成！文件大小: ${formatFileSize(mergedBlob.size)}`
         });
       }
     } catch (error) {
       console.log('通知创建失败:', error);
     }
     
-    console.log('M3U8 视频下载完成:', downloadTask);
+    console.log('M3U8 视频下载并合并完成:', downloadTask);
     
   } catch (error) {
     console.error('M3U8 下载过程中出错:', error);
@@ -508,44 +561,106 @@ async function downloadM3u8Segments(downloadTask) {
   }
 }
 
-// 等待下载完成
-function waitForDownloadComplete(downloadId) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error('下载超时'));
-    }, 30000); // 30秒超时
+// 合并视频片段
+async function mergeVideoSegments(segmentBlobs) {
+  try {
+    console.log(`开始合并 ${segmentBlobs.length} 个视频片段...`);
     
-    const listener = (downloadDelta) => {
-      if (downloadDelta.id === downloadId) {
-        if (downloadDelta.state && downloadDelta.state.current === 'complete') {
-          clearTimeout(timeout);
-          chrome.downloads.onChanged.removeListener(listener);
-          resolve(downloadId);
-        } else if (downloadDelta.state && downloadDelta.state.current === 'interrupted') {
-          clearTimeout(timeout);
-          chrome.downloads.onChanged.removeListener(listener);
-          reject(new Error('下载被中断'));
-        }
-      }
-    };
+    // 创建一个新的 Blob，将所有片段按顺序合并
+    const mergedBlob = new Blob(segmentBlobs, { 
+      type: 'video/mp2t' // TS 片段的 MIME 类型
+    });
     
-    chrome.downloads.onChanged.addListener(listener);
-  });
+    console.log(`合并完成，总大小: ${formatFileSize(mergedBlob.size)}`);
+    return mergedBlob;
+    
+  } catch (error) {
+    console.error('合并视频片段失败:', error);
+    throw new Error(`合并失败: ${error.message}`);
+  }
+}
+
+// 生成合并后文件的名称
+function generateMergedFileName(videoData) {
+  const title = videoData.title || 'HLS_Video';
+  const sanitizedTitle = title
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .replace(/\s+/g, '_')
+    .substring(0, 100);
+  
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+  return `${sanitizedTitle}_${timestamp}.ts`;
+}
+
+// 下载合并后的文件
+async function downloadMergedFile(blob, fileName, downloadTask) {
+  try {
+    // 创建一个 Object URL
+    const url = URL.createObjectURL(blob);
+    
+    // 使用 chrome.downloads API 下载合并后的文件
+    const downloadId = await chrome.downloads.download({
+      url: url,
+      filename: `FetchVideo/${fileName}`,
+      conflictAction: 'uniquify',
+      saveAs: true // 让用户选择保存位置
+    });
+    
+    console.log(`合并文件下载开始，downloadId: ${downloadId}`);
+    
+    // 等待下载完成后清理 Object URL
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 60000); // 1分钟后清理，给下载足够时间
+    
+    downloadTask.finalDownloadId = downloadId;
+    downloadTask.mergedFileName = fileName;
+    
+    return downloadId;
+    
+  } catch (error) {
+    console.error('下载合并文件失败:', error);
+    throw new Error(`保存文件失败: ${error.message}`);
+  }
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  let precision = 1;
+  if (size >= 100) precision = 0;
+  else if (size >= 10) precision = 1;
+  else precision = 2;
+  
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
 }
 
 // 更新下载进度
-function updateDownloadProgress(taskId, progress) {
+function updateDownloadProgress(taskId, progress, message = null) {
   try {
     if (chrome.notifications) {
-      chrome.notifications.update(taskId, {
-        progress: progress
-      }).catch(() => {
+      const updateData = { progress: progress };
+      if (message) {
+        updateData.message = message;
+      }
+      
+      chrome.notifications.update(taskId, updateData).catch(() => {
         // 如果通知不存在或更新失败，创建新的进度通知
         chrome.notifications.create(taskId, {
           type: 'progress',
           iconUrl: 'icons/icon48.png',
           title: 'FetchVideo - M3U8 下载',
-          message: `下载进度: ${progress}%`,
+          message: message || `下载进度: ${progress}%`,
           progress: progress
         }).catch(error => {
           console.log('进度通知创建失败:', error);
