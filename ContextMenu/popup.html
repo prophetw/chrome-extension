@@ -128,28 +128,37 @@
       font-size: 16px;
     }
     
-    .batch-engine {
+    .batch-group {
       display: flex;
       align-items: center;
-      padding: 8px;
-      margin-bottom: 5px;
+      padding: 10px;
+      margin-bottom: 8px;
       border-radius: 4px;
       background: white;
       border: 1px solid #e0e0e0;
     }
     
-    .batch-engine.selected {
+    .batch-group.selected {
       background: #e3f2fd;
       border-color: #2196f3;
     }
     
-    .batch-engine input[type="checkbox"] {
+    .batch-group input[type="checkbox"] {
       margin-right: 10px;
     }
     
-    .batch-engine-name {
-      font-weight: 500;
+    .batch-group-info {
       flex: 1;
+    }
+    
+    .batch-group-name {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    
+    .batch-group-engines {
+      font-size: 12px;
+      color: #666;
     }
     
     .batch-controls {
@@ -193,28 +202,126 @@
       border: 1px solid #ffeeba;
       border-radius: 4px;
     }
+    
+    .groups-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #f0f8ff;
+    }
+    
+    .groups-section h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 16px;
+    }
+    
+    .group-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+    }
+    
+    .group-item.enabled {
+      background: #e8f5e8;
+      border-color: #4caf50;
+    }
+    
+    .group-item input[type="checkbox"] {
+      margin-right: 10px;
+    }
+    
+    .group-info {
+      flex: 1;
+    }
+    
+    .group-name {
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+    
+    .group-engines-count {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .add-group {
+      margin-top: 15px;
+      padding: 10px;
+      border: 2px dashed #ddd;
+      border-radius: 4px;
+      text-align: center;
+      background: white;
+    }
+    
+    .add-group input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .add-group button {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .add-group button:hover {
+      background: #1976d2;
+    }
+    
+    .engine-group-select {
+      margin-left: 10px;
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <h2>自定义搜索设置</h2>
-    <p>管理右键菜单中的搜索引擎</p>
+    <p>管理右键菜单中的搜索引擎和分组</p>
+  </div>
+  
+  <div class="groups-section">
+    <h3>搜索分组管理</h3>
+    <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">
+      管理搜索引擎的分组，可以创建电影搜索、股票搜索等不同分组：
+    </p>
+    <div id="groupsList"></div>
+    <div class="add-group">
+      <input type="text" id="newGroupName" placeholder="分组名称（如：电影搜索、股票查询）">
+      <button id="addGroupBtn">添加分组</button>
+    </div>
   </div>
   
   <div id="searchEnginesList"></div>
   
   <div class="batch-search-section">
-    <h3>批量搜索设置</h3>
+    <h3>分组批量搜索设置</h3>
     <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">
-      选择在"同时搜索"功能中使用的搜索引擎：
+      选择支持批量搜索的分组，可以一次性在该分组的所有搜索引擎中搜索：
     </p>
-    <div id="batchSearchList"></div>
+    <div id="batchGroupsList"></div>
     <div class="batch-controls">
-      <button class="select-all-btn" onclick="selectAllBatch()">全选</button>
-      <button class="clear-all-btn" onclick="clearAllBatch()">清空</button>
+            <button class="select-all-btn" onclick="selectAllBatchGroups()">全选</button>
+      <button class="clear-all-btn" onclick="clearAllBatchGroups()">清空</button>
     </div>
     <div class="batch-info">
-      💡 提示：右键选择文本时，如果选择了多个搜索引擎，会出现"同时搜索"选项，点击后会在多个标签页中同时打开搜索结果。
+      💡 提示：启用分组批量搜索后，右键选择文本时会出现"同时搜索XX分组"选项，点击后会在该分组的所有搜索引擎中同时打开搜索结果。例如："同时搜索影视搜索"会在豆瓣电影和IMDb中同时搜索。
     </div>
   </div>
   
@@ -222,6 +329,9 @@
     <h3>添加新搜索引擎</h3>
     <input type="text" id="newEngineName" placeholder="搜索引擎名称（如：Wikipedia）">
     <input type="text" id="newEngineUrl" placeholder="搜索URL（用 %s 代替搜索词）">
+    <select id="newEngineGroup" class="engine-group-select">
+      <option value="">选择分组</option>
+    </select>
     <div class="help-text">
       示例URL: https://zh.wikipedia.org/wiki/%s
     </div>
