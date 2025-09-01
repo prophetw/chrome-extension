@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M3U8 下载测试 - FetchVideo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #1a73e8;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+    
+    .test-section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #1a73e8;
+      padding-bottom: 5px;
+    }
+    
+    .video-url {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      border-left: 4px solid #34a853;
+      margin: 10px 0;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    
+    .test-button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .test-button:hover {
+      background: #1557b0;
+    }
+    
+    .instructions {
+      background: #e8f5e8;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      border-left: 4px solid #34a853;
+    }
+    
+    .warning {
+      background: #fff3e0;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border-left: 4px solid #ff9800;
+    }
+    
+    .code {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+      font-family: monospace;
+      margin: 10px 0;
+    }
+    
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .status.success {
+      background: #e6f4ea;
+      color: #137333;
+      border: 1px solid #34a853;
+    }
+    
+    .status.error {
+      background: #fce8e6;
+      color: #d93025;
+      border: 1px solid #ea4335;
+    }
+    
+    .status.info {
+      background: #e8f0fe;
+      color: #1565c0;
+      border: 1px solid #1a73e8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 M3U8 下载功能测试</h1>
+    
+    <div class="instructions">
+      <h3>📋 使用说明</h3>
+      <ol>
+        <li>确保已安装并启用 FetchVideo 扩展</li>
+        <li>点击下面的测试链接</li>
+        <li>扩展会自动检测页面中的 M3U8 流媒体</li>
+        <li>在扩展弹窗中点击下载按钮</li>
+        <li>观察下载进度和状态</li>
+      </ol>
+    </div>
+    
+    <div class="test-section">
+      <h2>🔗 测试 M3U8 链接</h2>
+      <p>以下是一些用于测试的 M3U8 链接，点击将在页面中模拟流媒体播放：</p>
+      
+      <!-- 示例 M3U8 链接 1 -->
+      <div class="video-url" id="test-url-1">
+        https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8
+      </div>
+      <button class="test-button" onclick="testM3u8Url('test-url-1')">测试此链接</button>
+      
+      <!-- 示例 M3U8 链接 2 -->
+      <div class="video-url" id="test-url-2">
+        https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
+      </div>
+      <button class="test-button" onclick="testM3u8Url('test-url-2')">测试此链接</button>
+      
+      <!-- 示例 M3U8 链接 3 -->
+      <div class="video-url" id="test-url-3">
+        https://sample-videos.com/zip/10/mp4/hls/SampleVideo_720x480_1mb.m3u8
+      </div>
+      <button class="test-button" onclick="testM3u8Url('test-url-3')">测试此链接</button>
+    </div>
+    
+    <div class="test-section">
+      <h2>🎯 手动添加 M3U8 链接</h2>
+      <input type="text" id="custom-url" placeholder="输入 M3U8 链接..." style="width: 70%; padding: 8px; margin-right: 10px;">
+      <button class="test-button" onclick="testCustomUrl()">测试自定义链接</button>
+    </div>
+    
+    <div class="test-section">
+      <h2>📊 测试状态</h2>
+      <div id="status" class="status"></div>
+      <div id="detection-info" style="margin-top: 15px;"></div>
+    </div>
+    
+    <div class="warning">
+      <h3>⚠️ 注意事项</h3>
+      <ul>
+        <li>部分测试链接可能由于网络原因无法访问</li>
+        <li>某些 M3U8 流可能有地域限制或需要认证</li>
+        <li>测试过程中请保持网络连接稳定</li>
+        <li>下载的视频片段保存在 Downloads/FetchVideo/temp/ 目录中</li>
+      </ul>
+    </div>
+    
+    <div class="test-section">
+      <h2>🛠️ 合并视频片段</h2>
+      <p>下载完成后，使用以下命令合并视频片段：</p>
+      <div class="code">
+        # 使用 FFmpeg 合并片段<br>
+        cd Downloads/FetchVideo/temp/[任务ID]/<br>
+        ffmpeg -i "concat:$(ls segment_*.ts | sort -V | tr '\n' '|' | sed 's/|$//')" -c copy output.mp4
+      </div>
+      
+      <p>或者使用文件列表方式：</p>
+      <div class="code">
+        ls segment_*.ts | sort -V > filelist.txt<br>
+        ffmpeg -f concat -safe 0 -i filelist.txt -c copy output.mp4
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 模拟添加 M3U8 数据到页面
+    let currentTestUrl = '';
+    
+    function testM3u8Url(elementId) {
+      const element = document.getElementById(elementId);
+      const url = element.textContent.trim();
+      currentTestUrl = url;
+      
+      showStatus('正在模拟添加 M3U8 流...', 'info');
+      
+      // 创建隐藏的 script 标签包含 M3U8 URL
+      const script = document.createElement('script');
+      script.textContent = `
+        // 模拟流媒体配置
+        window.videoStreamConfig = {
+          source: "${url}",
+          type: "hls",
+          title: "测试 HLS 流",
+          quality: "720p"
+        };
+        
+        // 模拟播放器配置
+        window.playerConfig = {
+          hls: "${url}",
+          title: "M3U8 测试视频"
+        };
+      `;
+      document.head.appendChild(script);
+      
+      // 创建 meta 标签
+      const meta = document.createElement('meta');
+      meta.setAttribute('property', 'video:url');
+      meta.setAttribute('content', url);
+      document.head.appendChild(meta);
+      
+      // 创建隐藏的 video 元素
+      const video = document.createElement('video');
+      video.style.display = 'none';
+      video.setAttribute('data-src', url);
+      video.setAttribute('data-stream-url', url);
+      video.setAttribute('title', `测试 M3U8 视频 - ${Date.now()}`);
+      document.body.appendChild(video);
+      
+      setTimeout(() => {
+        showStatus('M3U8 流已添加到页面，现在可以使用扩展检测和下载。', 'success');
+        updateDetectionInfo(url);
+      }, 1000);
+    }
+    
+    function testCustomUrl() {
+      const input = document.getElementById('custom-url');
+      const url = input.value.trim();
+      
+      if (!url) {
+        showStatus('请输入有效的 M3U8 链接', 'error');
+        return;
+      }
+      
+      if (!url.includes('m3u8')) {
+        showStatus('链接似乎不是 M3U8 格式', 'error');
+        return;
+      }
+      
+      currentTestUrl = url;
+      
+      // 创建包含自定义 URL 的元素
+      const div = document.createElement('div');
+      div.id = 'custom-test-url';
+      div.className = 'video-url';
+      div.textContent = url;
+      div.style.display = 'none';
+      document.body.appendChild(div);
+      
+      testM3u8Url('custom-test-url');
+    }
+    
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = `status ${type}`;
+      status.style.display = 'block';
+    }
+    
+    function updateDetectionInfo(url) {
+      const info = document.getElementById('detection-info');
+      info.innerHTML = `
+        <h4>🔍 检测信息</h4>
+        <p><strong>当前测试 URL:</strong></p>
+        <div class="code">${url}</div>
+        <p><strong>添加的页面元素:</strong></p>
+        <ul>
+          <li>Script 标签：包含 videoStreamConfig 和 playerConfig</li>
+          <li>Meta 标签：property="video:url"</li>
+          <li>Video 元素：data-src 和 data-stream-url 属性</li>
+        </ul>
+        <p><strong>下一步:</strong></p>
+        <ol>
+          <li>点击浏览器工具栏的 FetchVideo 扩展图标</li>
+          <li>检查是否检测到 M3U8 流媒体</li>
+          <li>点击下载按钮开始下载</li>
+          <li>观察下载进度和通知</li>
+        </ol>
+      `;
+    }
+    
+    // 页面加载时显示初始状态
+    window.addEventListener('load', () => {
+      showStatus('页面已准备就绪，可以开始测试 M3U8 下载功能。', 'info');
+    });
+    
+    // 监听扩展消息（如果有的话）
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'fetchvideo-detection') {
+        showStatus('扩展已检测到页面内容更新', 'success');
+      }
+    });
+  </script>
+</body>
+</html>

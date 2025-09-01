@@ -158,6 +158,7 @@ function createVideoItem(video, template) {
   
   // 设置数据
   videoItem.dataset.videoId = video.id;
+  videoItem.dataset.type = video.type || 'unknown';
   
   // 填充内容
   const title = clone.querySelector('.video-title');
@@ -198,9 +199,10 @@ function createVideoItem(video, template) {
   let formatText = video.format || 'Video';
   
   // 为流媒体格式添加特殊标识
-  if (video.type === 'hls') {
-    formatText = '🎬 ' + formatText; // HLS流添加电影图标
+  if (video.type === 'hls' || video.url.toLowerCase().includes('.m3u8')) {
+    formatText = '🎬 HLS (M3U8)'; // HLS流添加电影图标和说明
     format.classList.add('streaming-format');
+    format.title = 'HTTP Live Streaming - 将分段下载并自动合并';
   } else if (video.type === 'dash') {
     formatText = '📺 ' + formatText; // DASH流添加电视图标
     format.classList.add('streaming-format');
@@ -310,21 +312,39 @@ async function downloadVideo(video) {
   }
   
   try {
+    // 检查是否是 M3U8 文件
+    const isM3u8 = video.url && (video.url.toLowerCase().includes('.m3u8') || video.type === 'hls');
+    
+    if (isM3u8) {
+      showDownloadStatus('正在解析 M3U8 文件...');
+    }
+    
     const response = await chrome.runtime.sendMessage({
       action: 'downloadVideo',
       videoData: video
     });
     
     if (response && response.success) {
-      showDownloadStatus('下载开始: ' + video.title);
-      videoItem?.classList.add('success');
-      
-      // 显示成功状态一段时间后恢复
-      setTimeout(() => {
-        videoItem?.classList.remove('success');
-        downloadBtn?.classList.remove('downloading');
-        if (downloadBtn) downloadBtn.disabled = false;
-      }, 3000);
+      if (isM3u8) {
+        showDownloadStatus('M3U8 下载已开始，将分段下载视频...');
+        videoItem?.classList.add('success');
+        
+        // 对于 M3U8，显示更长时间的成功状态
+        setTimeout(() => {
+          videoItem?.classList.remove('success');
+          downloadBtn?.classList.remove('downloading');
+          if (downloadBtn) downloadBtn.disabled = false;
+        }, 5000);
+      } else {
+        showDownloadStatus('下载开始: ' + video.title);
+        videoItem?.classList.add('success');
+        
+        setTimeout(() => {
+          videoItem?.classList.remove('success');
+          downloadBtn?.classList.remove('downloading');
+          if (downloadBtn) downloadBtn.disabled = false;
+        }, 3000);
+      }
     } else {
       throw new Error(response?.error || '下载失败');
     }
@@ -494,7 +514,19 @@ function showVideoList() {
 function showDownloadStatus(message, isError = false) {
   elements.downloadStatus.style.display = 'block';
   elements.downloadStatus.querySelector('.status-text').textContent = message;
-  elements.downloadStatus.style.background = isError ? '#fce8e6' : '#e6f4ea';
+  
+  // 移除之前的样式类
+  elements.downloadStatus.classList.remove('m3u8', 'error');
+  
+  if (isError) {
+    elements.downloadStatus.classList.add('error');
+    elements.downloadStatus.style.background = '#fce8e6';
+  } else if (message.toLowerCase().includes('m3u8')) {
+    elements.downloadStatus.classList.add('m3u8');
+    elements.downloadStatus.style.background = '#e3f2fd';
+  } else {
+    elements.downloadStatus.style.background = '#e6f4ea';
+  }
 }
 
 function hideDownloadStatus() {

@@ -514,3 +514,60 @@ body {
   background: #e6f4ea;
   border-color: #34a853;
 }
+
+/* M3U8 特殊样式 */
+.video-item[data-type="hls"] {
+  border-left: 3px solid #2e7d32;
+}
+
+.video-item[data-type="hls"] .video-title::before {
+  content: "🎬 ";
+  margin-right: 4px;
+}
+
+.video-item[data-type="hls"] .video-url {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+/* M3U8 下载状态 */
+.video-item.m3u8-analyzing {
+  background: #fff3e0;
+  border-color: #f57c00;
+}
+
+.video-item.m3u8-analyzing .download-btn {
+  background: #ff9800;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.video-item.m3u8-downloading {
+  background: #e3f2fd;
+  border-color: #1976d2;
+}
+
+.video-item.m3u8-downloading .download-btn {
+  background: #2196f3;
+}
+
+/* 下载状态增强 */
+.download-status.m3u8 {
+  background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 1px solid #2196f3;
+  color: #0d47a1;
+}
+
+.download-status.error {
+  background: linear-gradient(90deg, #ffebee 0%, #ffcdd2 100%);
+  border: 1px solid #f44336;
+  color: #b71c1c;
+}

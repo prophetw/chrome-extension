@@ -591,6 +591,88 @@ class VideoDetector {
     })[0] || null;
   }
 
+  // 检测现有视频元素
+  detectExistingVideos() {
+    console.log('Detecting existing video elements...');
+    
+    // 检测页面中的 video 和 audio 元素
+    const mediaElements = document.querySelectorAll('video, audio');
+    
+    mediaElements.forEach(element => {
+      const videoData = this.extractVideoDataFromElement(element);
+      if (videoData) {
+        this.addVideo(videoData);
+      }
+    });
+    
+    // 重新检测流媒体播放器
+    this.detectStreamingPlayers();
+  }
+
+  // 从媒体元素提取视频数据
+  extractVideoDataFromElement(element) {
+    const src = element.src || element.currentSrc;
+    if (!src || src.startsWith('blob:') || src.startsWith('data:')) {
+      return null;
+    }
+    
+    const videoData = {
+      id: generateId(),
+      element: element,
+      type: element.tagName.toLowerCase() === 'video' ? 'video' : 'audio',
+      url: src,
+      title: this.extractTitleFromElement(element) || document.title || 'Media Element',
+      width: element.videoWidth || 0,
+      height: element.videoHeight || 0,
+      duration: element.duration || 0,
+      quality: this.getVideoQuality(element.videoWidth, element.videoHeight),
+      resolution: element.videoWidth && element.videoHeight ? 
+        `${element.videoWidth}x${element.videoHeight}` : '未知',
+      format: this.getFormatFromUrl(src),
+      priority: 60,
+      timestamp: Date.now(),
+      domain: window.location.hostname,
+      source: 'existing_element'
+    };
+    
+    return videoData;
+  }
+
+  // 获取视频质量
+  getVideoQuality(width, height) {
+    if (!width || !height) return '未知';
+    
+    const pixels = width * height;
+    
+    // 更精确的质量判断
+    if (height >= 2160 || pixels >= 3840 * 2160) return '4K';
+    if (height >= 1440 || pixels >= 2560 * 1440) return '2K';
+    if (height >= 1080 || pixels >= 1920 * 1080) return '1080p';
+    if (height >= 720 || pixels >= 1280 * 720) return '720p';
+    if (height >= 480 || pixels >= 854 * 480) return '480p';
+    if (height >= 360 || pixels >= 640 * 360) return '360p';
+    if (height >= 240 || pixels >= 426 * 240) return '240p';
+    
+    return `${width}x${height}`;
+  }
+
+  // 从URL获取格式
+  getFormatFromUrl(url) {
+    const extension = url.split('.').pop().split('?')[0].toLowerCase();
+    const formatMap = {
+      'mp4': 'MP4',
+      'webm': 'WebM',
+      'ogg': 'OGG',
+      'avi': 'AVI',
+      'mov': 'MOV',
+      'mkv': 'MKV',
+      'm3u8': 'HLS',
+      'mpd': 'DASH'
+    };
+    
+    return formatMap[extension] || 'Video';
+  }
+
   // 清理检测器
   cleanup() {
     this.observers.forEach(observer => observer.disconnect());
