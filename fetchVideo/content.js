@@ -1,335 +1,402 @@
-// 内容脚本 - 检测页面中的视频
-(function() {
-  'use strict';
+// Content Script for FetchVideo Extension
+
+console.log('FetchVideo content script loaded');
+
+// 等待页面加载完成后初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeDetector);
+} else {
+  initializeDetector();
+}
+
+function initializeDetector() {
+  // 延迟初始化，等待其他脚本加载
+  setTimeout(() => {
+    if (window.videoDetector) {
+      window.videoDetector.init();
+    }
+  }, 1000);
+}
+
+// 监听来自popup和background的消息
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Content script received message:', request);
   
-  console.log('视频下载助手已加载');
-  
-  // 存储已检测到的视频，避免重复
-  const detectedUrls = new Set();
-  
-  // 检测视频元素
-  function detectVideoElements() {
-    const videos = document.querySelectorAll('video');
-    videos.forEach(video => {
-      if (video.src && !detectedUrls.has(video.src)) {
-        detectedUrls.add(video.src);
-        
-        // 获取详细的视频信息
-        const videoInfo = getDetailedVideoInfo(video);
-        reportVideo(videoInfo);
-      }
+  switch (request.action) {
+    case 'getAllVideos':
+      handleGetAllVideos(sendResponse);
+      return true; // 异步响应
       
-      // 检测source元素
-      const sources = video.querySelectorAll('source');
-      sources.forEach(source => {
-        if (source.src && !detectedUrls.has(source.src)) {
-          detectedUrls.add(source.src);
-          
-          // 使用父级video元素获取信息
-          const videoInfo = getDetailedVideoInfo(video, source.src, source.type);
-          reportVideo(videoInfo);
-        }
-      });
+    case 'getActiveVideo':
+      handleGetActiveVideo(sendResponse);
+      return true;
+      
+    case 'refreshDetection':
+      handleRefreshDetection(sendResponse);
+      return true;
+      
+    case 'downloadVideo':
+      handleDownloadVideo(request.videoData, sendResponse);
+      return true;
+      
+    case 'getPageInfo':
+      handleGetPageInfo(sendResponse);
+      return true;
+  }
+});
+
+// 处理获取所有视频请求
+function handleGetAllVideos(sendResponse) {
+  try {
+    if (!window.videoDetector) {
+      sendResponse({ success: false, error: 'Video detector not initialized' });
+      return;
+    }
+    
+    const videos = window.videoDetector.getAllVideos();
+    console.log('Found videos:', videos);
+    
+    // 增强视频信息
+    const enhancedVideos = videos.map(video => {
+      const enhanced = {
+        ...video,
+        title: sanitizeTitle(video.title),
+        downloadable: isDownloadable(video),
+        estimatedSize: video.estimatedSize || estimateFileSize(video),
+        displaySize: getDisplaySize(video),
+        displayResolution: getDisplayResolution(video),
+        qualityScore: calculateQualityScore(video)
+      };
+      
+      return enhanced;
     });
+    
+    // 按质量分数排序（高质量优先）
+    enhancedVideos.sort((a, b) => b.qualityScore - a.qualityScore);
+    
+    sendResponse({ 
+      success: true, 
+      videos: enhancedVideos,
+      count: enhancedVideos.length 
+    });
+  } catch (error) {
+    console.error('Error getting all videos:', error);
+    sendResponse({ success: false, error: error.message });
   }
-  
-  // 获取详细的视频信息
-  function getDetailedVideoInfo(videoElement, customUrl = null, customType = null) {
-    const url = customUrl || videoElement.src;
-    const type = customType || videoElement.getAttribute('type') || getVideoTypeFromUrl(url);
-    
-    // 获取视频尺寸信息
-    let resolution = 'unknown';
-    if (videoElement.videoWidth && videoElement.videoHeight) {
-      resolution = `${videoElement.videoWidth}x${videoElement.videoHeight}`;
-    } else if (videoElement.getAttribute('width') && videoElement.getAttribute('height')) {
-      resolution = `${videoElement.getAttribute('width')}x${videoElement.getAttribute('height')}`;
+}
+
+// 处理获取活动视频请求
+function handleGetActiveVideo(sendResponse) {
+  try {
+    if (!window.videoDetector) {
+      sendResponse({ success: false, error: 'Video detector not initialized' });
+      return;
     }
     
-    // 获取视频质量信息
-    let quality = '';
-    if (videoElement.videoWidth) {
-      const width = videoElement.videoWidth;
-      if (width >= 3840) quality = '4K';
-      else if (width >= 2560) quality = '2K';
-      else if (width >= 1920) quality = '1080p';
-      else if (width >= 1280) quality = '720p';
-      else if (width >= 854) quality = '480p';
-      else if (width >= 640) quality = '360p';
-      else quality = '低分辨率';
-    }
-    
-    // 获取文件大小（如果可用）
-    let fileSize = 'unknown';
-    if (videoElement.buffered && videoElement.buffered.length > 0 && videoElement.duration) {
-      // 估算文件大小（粗略计算）
-      const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
-      const totalDuration = videoElement.duration;
-      if (bufferedEnd > 0 && totalDuration > 0) {
-        // 这里只是一个粗略的估算
-        const estimatedSize = Math.round((bufferedEnd / totalDuration) * 50); // 假设每秒50KB
-        if (estimatedSize > 1024) {
-          fileSize = (estimatedSize / 1024).toFixed(1) + ' MB';
-        } else {
-          fileSize = estimatedSize + ' KB';
-        }
-      }
-    }
-    
-    return {
-      url: url,
-      type: type,
-      title: getVideoTitle(videoElement),
-      duration: videoElement.duration || 0,
-      size: resolution,
-      quality: quality,
-      fileSize: fileSize,
-      width: videoElement.videoWidth || 0,
-      height: videoElement.videoHeight || 0
-    };
-  }
-  
-  // 从URL获取视频类型
-  function getVideoTypeFromUrl(url) {
-    const lowerUrl = url.toLowerCase();
-    
-    if (lowerUrl.includes('.m3u8') || lowerUrl.includes('hls')) {
-      return 'HLS (m3u8)';
-    } else if (lowerUrl.includes('.mp4')) {
-      return 'MP4';
-    } else if (lowerUrl.includes('.webm')) {
-      return 'WebM';
-    } else if (lowerUrl.includes('.flv')) {
-      return 'FLV';
-    } else if (lowerUrl.includes('.ts')) {
-      return 'TS (Transport Stream)';
-    } else if (lowerUrl.includes('.avi')) {
-      return 'AVI';
-    } else if (lowerUrl.includes('.mov')) {
-      return 'MOV';
-    } else if (lowerUrl.includes('.wmv')) {
-      return 'WMV';
-    } else if (lowerUrl.includes('.mkv')) {
-      return 'MKV';
+    const activeVideo = window.videoDetector.getActiveVideo();
+    if (activeVideo) {
+      const enhanced = {
+        ...activeVideo,
+        title: sanitizeTitle(activeVideo.title),
+        downloadable: isDownloadable(activeVideo),
+        estimatedSize: estimateFileSize(activeVideo)
+      };
+      sendResponse({ success: true, video: enhanced });
     } else {
-      return '视频流';
+      sendResponse({ success: false, error: 'No active video found' });
     }
+  } catch (error) {
+    console.error('Error getting active video:', error);
+    sendResponse({ success: false, error: error.message });
   }
-  
-  // 获取视频标题
-  function getVideoTitle(element) {
-    // 尝试多种方法获取标题
-    let title = element.getAttribute('title') || 
-                element.getAttribute('alt') || 
-                element.getAttribute('data-title') ||
-                document.title ||
-                '未知视频';
-    
-    // 清理标题
-    title = title.substring(0, 100); // 限制长度
-    return title;
-  }
-  
-  // 向后台脚本报告发现的视频
-  function reportVideo(video) {
-    chrome.runtime.sendMessage({
-      type: 'VIDEO_DETECTED',
-      video: video
-    }).catch(error => {
-      console.log('发送消息失败:', error);
-    });
-  }
-  
-  // 注入脚本来监听网络请求
-  function injectNetworkListener() {
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('inject.js');
-    script.onload = function() {
-      this.remove();
-    };
-    (document.head || document.documentElement).appendChild(script);
-  }
-  
-  // 监听来自注入脚本的消息
-  window.addEventListener('VIDEO_FOUND', function(event) {
-    const videoData = event.detail;
-    if (videoData && videoData.url && !detectedUrls.has(videoData.url)) {
-      detectedUrls.add(videoData.url);
-      reportVideo(videoData);
-    }
-  });
-  
-  // 监听XMLHttpRequest和fetch请求
-  function monitorNetworkRequests() {
-    // 监听XHR
-    const originalXHROpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method, url, ...args) {
-      if (isVideoUrl(url)) {
-        this.addEventListener('load', function() {
-          if (this.status === 200 && !detectedUrls.has(url)) {
-            detectedUrls.add(url);
-            
-            // 获取响应头中的内容长度
-            const contentLength = this.getResponseHeader('content-length');
-            let fileSize = 'unknown';
-            if (contentLength) {
-              const sizeBytes = parseInt(contentLength);
-              if (sizeBytes > 1024 * 1024) {
-                fileSize = (sizeBytes / 1024 / 1024).toFixed(1) + ' MB';
-              } else if (sizeBytes > 1024) {
-                fileSize = (sizeBytes / 1024).toFixed(1) + ' KB';
-              } else {
-                fileSize = sizeBytes + ' B';
-              }
-            }
-            
-            reportVideo({
-              url: url,
-              type: getVideoTypeFromUrl(url),
-              title: document.title || '网络视频',
-              duration: 0,
-              size: 'unknown',
-              quality: '',
-              fileSize: fileSize,
-              width: 0,
-              height: 0
-            });
-          }
+}
+
+// 处理刷新检测请求
+function handleRefreshDetection(sendResponse) {
+  try {
+    if (window.videoDetector) {
+      window.videoDetector.cleanup();
+      setTimeout(() => {
+        window.videoDetector.init();
+        const videos = window.videoDetector.getAllVideos();
+        sendResponse({ 
+          success: true, 
+          videos: videos,
+          message: 'Detection refreshed' 
         });
-      }
-      return originalXHROpen.call(this, method, url, ...args);
-    };
-    
-    // 监听fetch
-    const originalFetch = window.fetch;
-    window.fetch = function(url, ...args) {
-      if (typeof url === 'string' && isVideoUrl(url)) {
-        const promise = originalFetch.call(this, url, ...args);
-        promise.then(response => {
-          if (response.ok && !detectedUrls.has(url)) {
-            detectedUrls.add(url);
-            
-            // 获取响应头中的内容长度
-            const contentLength = response.headers.get('content-length');
-            let fileSize = 'unknown';
-            if (contentLength) {
-              const sizeBytes = parseInt(contentLength);
-              if (sizeBytes > 1024 * 1024) {
-                fileSize = (sizeBytes / 1024 / 1024).toFixed(1) + ' MB';
-              } else if (sizeBytes > 1024) {
-                fileSize = (sizeBytes / 1024).toFixed(1) + ' KB';
-              } else {
-                fileSize = sizeBytes + ' B';
-              }
-            }
-            
-            reportVideo({
-              url: url,
-              type: getVideoTypeFromUrl(url),
-              title: document.title || '网络视频',
-              duration: 0,
-              size: 'unknown',
-              quality: '',
-              fileSize: fileSize,
-              width: 0,
-              height: 0
-            });
-          }
-        }).catch(() => {});
-        return promise;
-      }
-      return originalFetch.call(this, url, ...args);
-    };
+      }, 1000);
+    } else {
+      sendResponse({ success: false, error: 'Video detector not available' });
+    }
+  } catch (error) {
+    console.error('Error refreshing detection:', error);
+    sendResponse({ success: false, error: error.message });
   }
+}
+
+// 处理下载视频请求
+function handleDownloadVideo(videoData, sendResponse) {
+  try {
+    if (!videoData || !videoData.url) {
+      sendResponse({ success: false, error: 'Invalid video data' });
+      return;
+    }
+    
+    // 发送到background script处理下载
+    chrome.runtime.sendMessage({
+      action: 'downloadVideo',
+      videoData: videoData
+    }).then(response => {
+      sendResponse(response);
+    }).catch(error => {
+      sendResponse({ success: false, error: error.message });
+    });
+  } catch (error) {
+    console.error('Error downloading video:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// 处理获取页面信息请求
+function handleGetPageInfo(sendResponse) {
+  try {
+    const pageInfo = {
+      title: document.title,
+      url: window.location.href,
+      domain: window.location.hostname,
+      hasVideos: document.querySelectorAll('video, audio').length > 0,
+      videoCount: window.videoDetector ? window.videoDetector.getAllVideos().length : 0,
+      timestamp: Date.now()
+    };
+    
+    sendResponse({ success: true, pageInfo: pageInfo });
+  } catch (error) {
+    console.error('Error getting page info:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// 工具函数
+
+// 清理标题
+function sanitizeTitle(title) {
+  if (!title) return 'Untitled Video';
   
-  // 判断URL是否为视频
-  function isVideoUrl(url) {
-    if (!url || typeof url !== 'string') return false;
-    
-    const videoExtensions = [
-      '.mp4', '.webm', '.flv', '.avi', '.mov', '.wmv', '.mkv', '.m4v',
-      '.m3u8', '.ts', '.f4v', '.3gp', '.ogv'
-    ];
-    
-    const videoKeywords = [
-      'video', 'stream', 'media', 'play', 'movie', 'film',
-      'm3u8', 'hls', 'dash', 'rtmp', 'rtsp'
-    ];
-    
-    const lowerUrl = url.toLowerCase();
-    
-    // 检查文件扩展名
-    if (videoExtensions.some(ext => lowerUrl.includes(ext))) {
-      return true;
-    }
-    
-    // 检查URL中的关键词
-    if (videoKeywords.some(keyword => lowerUrl.includes(keyword))) {
-      return true;
-    }
-    
+  return title
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100);
+}
+
+// 检查是否可下载
+function isDownloadable(video) {
+  if (!video || !video.url) return false;
+  
+  // 检查URL格式
+  if (!isVideoUrl(video.url)) return false;
+  
+  // 检查是否是本地文件
+  if (video.url.startsWith('blob:') || video.url.startsWith('data:')) {
     return false;
   }
   
-  // 从URL获取视频类型
-  function getVideoTypeFromUrl(url) {
-    const lowerUrl = url.toLowerCase();
+  // 检查协议
+  if (!video.url.startsWith('http://') && !video.url.startsWith('https://')) {
+    return false;
+  }
+  
+  return true;
+}
+
+// 估计文件大小
+function estimateFileSize(video) {
+  if (!video) return 0;
+  
+  // 如果已有实际大小或估算大小，直接返回
+  if (video.fileSize) return video.fileSize;
+  if (video.actualSize) return video.actualSize;
+  if (video.estimatedSize) return video.estimatedSize;
+  
+  // 如果有duration，进行估计
+  if (video.duration && video.duration > 0) {
+    // 基于质量和时长的粗略估计
+    let bitrate = 2000; // 默认 2 Mbps
     
-    if (lowerUrl.includes('.m3u8') || lowerUrl.includes('hls')) {
-      return 'HLS (m3u8)';
-    } else if (lowerUrl.includes('.mp4')) {
-      return 'MP4';
-    } else if (lowerUrl.includes('.webm')) {
-      return 'WebM';
-    } else if (lowerUrl.includes('.flv')) {
-      return 'FLV';
-    } else if (lowerUrl.includes('.ts')) {
-      return 'TS (Transport Stream)';
-    } else {
-      return '视频流';
+    if (video.bitrate && video.bitrate > 0) {
+      bitrate = video.bitrate;
+    } else if (video.width && video.height) {
+      // 基于分辨率估算比特率
+      const pixels = video.width * video.height;
+      
+      if (pixels >= 3840 * 2160) bitrate = 25000; // 4K
+      else if (pixels >= 2560 * 1440) bitrate = 16000; // 2K
+      else if (pixels >= 1920 * 1080) bitrate = 8000; // 1080p
+      else if (pixels >= 1280 * 720) bitrate = 4000; // 720p
+      else if (pixels >= 854 * 480) bitrate = 2000; // 480p
+      else if (pixels >= 640 * 360) bitrate = 1000; // 360p
+      else bitrate = 500; // 更低分辨率
+    } else if (video.quality) {
+      // 基于质量标签估算
+      const qualityBitrates = {
+        '4K': 25000,
+        '2K': 16000,
+        '1440p': 16000,
+        '1080p': 8000,
+        '720p': 4000,
+        '480p': 2000,
+        '360p': 1000,
+        '240p': 500
+      };
+      bitrate = qualityBitrates[video.quality] || 2000;
+    }
+    
+    return Math.round((bitrate * 1000 * video.duration) / 8); // bytes
+  }
+  
+  return 0;
+}
+
+// 获取显示用的文件大小
+function getDisplaySize(video) {
+  const size = video.fileSize || video.actualSize || video.estimatedSize || estimateFileSize(video);
+  
+  if (!size || size <= 0) return '';
+  
+  // 如果是估算大小，添加波浪号标识
+  const isEstimated = !video.fileSize && !video.actualSize;
+  const prefix = isEstimated ? '~' : '';
+  
+  return prefix + formatFileSize(size);
+}
+
+// 获取显示用的分辨率
+function getDisplayResolution(video) {
+  if (video.width && video.height) {
+    return `${video.width}x${video.height}`;
+  } else if (video.resolution && video.resolution !== '未知') {
+    return video.resolution;
+  }
+  return '';
+}
+
+// 计算质量分数（用于排序）
+function calculateQualityScore(video) {
+  let score = 0;
+  
+  // 基于类型的优先级分数
+  if (video.type === 'hls') score += 10000;        // m3u8 最高优先级
+  else if (video.type === 'dash') score += 9000;   // mpd 次高优先级
+  else if (video.type === 'network') score += 8000; // 网络请求
+  else score += 5000;                               // 普通video元素
+  
+  // 基于分辨率的分数
+  if (video.width && video.height) {
+    const pixels = video.width * video.height;
+    score += pixels / 1000; // 像素数除以1000作为基础分数
+  } else if (video.quality) {
+    // 基于质量标签的分数
+    const qualityScores = {
+      '4K': 8000,
+      '2K': 4000,
+      '1440p': 4000,
+      '1080p': 2000,
+      '720p': 1000,
+      '480p': 500,
+      '360p': 250,
+      '240p': 100
+    };
+    score += qualityScores[video.quality] || 100;
+  }
+  
+  // 基于时长的分数加成
+  if (video.duration && video.duration > 0) {
+    score += video.duration * 0.1; // 时长加成
+  }
+  
+  // 基于比特率的分数加成
+  if (video.bitrate && video.bitrate > 0) {
+    score += video.bitrate * 0.01;
+  }
+  
+  // 如果有实际文件大小，给予额外分数
+  if (video.fileSize || video.actualSize) {
+    score += 100;
+  }
+  
+  // 基于优先级的分数
+  if (video.priority) {
+    score += video.priority * 10;
+  }
+  
+  // 源可靠性分数
+  if (video.source === 'script_content') score += 500;
+  else if (video.source === 'html_content') score += 400;
+  else if (video.source === 'element_attribute') score += 300;
+  else if (video.source === 'network_intercept') score += 200;
+  
+  return score;
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  let precision = 1;
+  if (size >= 100) precision = 0;
+  else if (size >= 10) precision = 1;
+  else precision = 2;
+  
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
+}
+
+// 定期检查新视频（用于动态加载的内容）
+setInterval(() => {
+  if (window.videoDetector && window.videoDetector.isInitialized) {
+    // 检查是否有新的视频元素
+    const currentVideoCount = document.querySelectorAll('video, audio').length;
+    const detectedCount = window.videoDetector.getAllVideos().length;
+    
+    if (currentVideoCount > detectedCount) {
+      console.log('New video elements detected, rescanning...');
+      window.videoDetector.detectExistingVideos();
     }
   }
-  
-  // 初始化
-  function init() {
-    // 检测现有视频元素
-    detectVideoElements();
-    
-    // 监听新添加的视频元素
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1) { // Element node
-            if (node.tagName === 'VIDEO') {
-              setTimeout(() => detectVideoElements(), 100);
-            } else if (node.querySelector && node.querySelector('video')) {
-              setTimeout(() => detectVideoElements(), 100);
-            }
-          }
-        });
-      });
-    });
-    
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-    
-    // 注入网络监听脚本
-    injectNetworkListener();
-    
-    // 监听网络请求
-    monitorNetworkRequests();
+}, 5000);
+
+// 监听页面可见性变化
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && window.videoDetector) {
+    // 页面变为可见时，刷新检测
+    setTimeout(() => {
+      window.videoDetector.detectExistingVideos();
+    }, 1000);
   }
-  
-  // 页面加载完成后初始化
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+});
+
+// 监听URL变化（SPA应用）
+let currentUrl = window.location.href;
+setInterval(() => {
+  if (window.location.href !== currentUrl) {
+    currentUrl = window.location.href;
+    console.log('URL changed, refreshing video detection');
+    
+    if (window.videoDetector) {
+      setTimeout(() => {
+        window.videoDetector.cleanup();
+        window.videoDetector.init();
+      }, 2000);
+    }
   }
-  
-  // 定期检测（某些视频可能延迟加载）
-  setInterval(detectVideoElements, 3000);
-  
-})();
+}, 1000);
+
+console.log('FetchVideo content script initialized');

@@ -1,216 +1,256 @@
-# 视频下载助手 Chrome 扩展
+# FetchVideo - 网页视频流下载插件
 
-一个功能强大的 Chrome 扩展，可以检测和下载网页中的各种类型视频，包括 HLS 流媒体视频（m3u8）、MP4、WebM、FLV 等格式。
+一个用于下载网页视频流的Chrome扩展插件。
 
 ## 功能特性
 
-- ✅ **多格式支持**: 支持 MP4、WebM、FLV、HLS(m3u8)、TS 等多种视频格式
-- ✅ **智能检测**: 自动检测页面中的视频元素和网络请求
-- ✅ **实时监控**: 监控 XMLHttpRequest、Fetch API、WebSocket 等网络活动
-- ✅ **流媒体支持**: 支持 HLS.js、Video.js 等流媒体播放器
-- ✅ **批量管理**: 可同时检测多个视频，批量下载
-- ✅ **用户友好**: 清晰的界面，显示视频信息和下载状态
+- 🎬 自动检测网页中的视频流
+- 📥 支持多种视频格式下载 (MP4, WebM, M3U8等)
+- 🔍 智能识别HLS流、DASH流等
+- � **显示详细视频信息**：分辨率、文件大小、比特率、时长
+- �💾 批量下载支持
+- 🎯 右键菜单快速下载
+- � 实时下载进度显示
+- 🎖️ 智能质量检测和排序
 
 ## 安装方法
 
-### 方法一：开发者模式安装（推荐）
+### 开发者模式安装
 
-1. 打开 Chrome 浏览器
-2. 在地址栏输入 `chrome://extensions/`
+1. 打开Chrome浏览器
+2. 地址栏输入 `chrome://extensions/`
 3. 开启右上角的"开发者模式"
 4. 点击"加载已解压的扩展程序"
-5. 选择 `fetchVideo` 文件夹
-6. 扩展安装完成
+5. 选择本项目的fetchVideo文件夹
 
-### 方法二：打包安装
+### 商店安装
 
-```bash
-# 打包扩展
-cd fetchVideo
-zip -r video-downloader.zip . -x "*.git*" "*.DS_Store*"
-```
-
-然后在 Chrome 扩展管理页面拖拽 zip 文件进行安装。
+待发布到Chrome Web Store
 
 ## 使用方法
 
 ### 基本使用
 
-1. **安装扩展后**，Chrome 工具栏会出现视频下载助手图标
-2. **访问包含视频的网页**，扩展会自动检测视频
-3. **点击扩展图标**，查看检测到的视频列表
-4. **选择要下载的视频**，点击"下载"按钮
+1. 访问包含视频的网页
+2. 插件会自动检测页面中的视频流
+3. 点击浏览器工具栏中的插件图标
+4. 在弹出窗口中选择要下载的视频
+5. 点击下载按钮开始下载
 
-### 功能说明
+### 右键菜单
 
-#### 自动检测
-- 扩展会自动检测页面中的 `<video>` 元素
-- 监控网络请求，捕获视频文件 URL
-- 支持动态加载的视频内容
+1. 在视频元素上右键点击
+2. 选择"下载视频"选项
+3. 自动开始下载
 
-#### 视频信息
-每个检测到的视频会显示：
-- 视频标题
-- 视频格式/类型
-- 视频时长（如果可获取）
-- 视频尺寸（如果可获取）
-- 视频 URL
+### 批量下载
 
-#### 操作选项
-- **📥 下载**: 直接下载视频文件
-- **📋 复制**: 复制视频链接到剪贴板
-- **🔗 打开**: 在新标签页中打开视频链接
-
-#### 控制选项
-- **🔄 刷新检测**: 重新扫描页面中的视频
-- **🗑️ 清空列表**: 清除当前检测到的视频列表
-
-## 支持的网站类型
-
-### 视频播放网站
-- YouTube（部分）
-- Bilibili
-- 优酷、爱奇艺等视频网站
-- 直播平台
-- 在线教育平台
-
-### 视频格式
-- **MP4**: 最常见的视频格式
-- **WebM**: Google 开发的开放格式
-- **FLV**: Flash 视频格式
-- **HLS (m3u8)**: HTTP Live Streaming
-- **DASH**: Dynamic Adaptive Streaming
-- **TS**: Transport Stream 片段
+1. 打开插件弹窗
+2. 勾选多个视频项
+3. 点击"批量下载"按钮
 
 ## 技术实现
 
-### 架构设计
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Background    │    │   Content       │    │   Inject        │
-│   Script        │◄──►│   Script        │◄──►│   Script        │
-│                 │    │                 │    │                 │
-│ - 消息处理      │    │ - DOM 监控      │    │ - 深度拦截      │
-│ - 下载管理      │    │ - 元素检测      │    │ - 网络监听      │
-│ - 数据存储      │    │ - 事件转发      │    │ - 库拦截        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         ▲                                                ▲
-         │                                                │
-         ▼                                                ▼
-┌─────────────────┐                            ┌─────────────────┐
-│     Popup       │                            │   Web Page      │
-│     Interface   │                            │   Context       │
-│                 │                            │                 │
-│ - 视频列表      │                            │ - 播放器监控    │
-│ - 下载控制      │                            │ - 网络请求      │
-│ - 用户交互      │                            │ - 媒体 API      │
-└─────────────────┘                            └─────────────────┘
+### 核心技术栈
+
+- **Manifest V3**: 最新的Chrome扩展规范
+- **Content Script**: 页面内容检测
+- **Background Service Worker**: 后台处理
+- **Chrome Downloads API**: 文件下载
+- **FFmpeg.js**: 视频格式转换（可选）
+
+### 智能检测优先级
+
+#### 1. 流媒体优先检测 (优先级: 100)
+```javascript
+// 优先检测 HLS 流 (m3u8) - 真正的下载入口
+searchScriptsForM3u8();        // script标签中的m3u8链接
+searchHTMLForM3u8();          // HTML内容中的m3u8链接
+searchAttributesForM3u8();    // 元素属性中的m3u8链接
+searchPlayerConfigsForM3u8(); // 播放器配置中的m3u8链接
 ```
 
-### 检测机制
+#### 2. DASH流检测 (优先级: 90)
+```javascript
+// 检测 DASH 流 (mpd)
+detectDASHPlayer();
+```
 
-1. **DOM 元素检测**
-   - 监控 `<video>` 标签
-   - 检测 `<source>` 子元素
-   - 使用 MutationObserver 监听动态变化
+#### 3. 网络请求拦截 (优先级: 70-80)
+```javascript
+// 拦截流媒体网络请求
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    if (isStreamingRequest(details.url)) {
+      storeVideoRequest(details, 'streaming');
+    }
+  },
+  {urls: ["*://*/*.m3u8*", "*://*/*.mpd*"]}
+);
+```
 
-2. **网络请求拦截**
-   - XMLHttpRequest 拦截
-   - Fetch API 拦截
-   - WebSocket 连接监控
+#### 4. 普通Video元素 (优先级: 30-60)
+```javascript
+// 最后检测普通video标签的src
+const mediaElements = document.querySelectorAll('video, audio');
+// 验证是否为真实下载源
+const isValid = validateVideoSource(videoUrl);
+```
 
-3. **播放器库支持**
-   - HLS.js 库拦截
-   - Video.js 播放器监控
-   - Media Source Extensions API
+### 视频检测机制
 
-4. **页面上下文分析**
-   - 扫描页面变量
-   - 分析 JavaScript 对象
-   - 检测流媒体配置
+#### 1. DOM元素检测
+```javascript
+// 检测video和audio标签
+const mediaElements = document.querySelectorAll('video, audio');
+```
 
-## 权限说明
+#### 2. 网络请求拦截
+```javascript
+// 拦截视频相关的网络请求
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    // 检测视频文件请求
+  },
+  {urls: ["*://*/*.mp4", "*://*/*.webm", "*://*/*.m3u8"]}
+);
+```
 
-扩展需要以下权限：
+#### 3. HLS/DASH流检测
+```javascript
+// 检测流媒体播放器
+const players = document.querySelectorAll('[data-video-src], [data-hls-url]');
+```
 
-- `activeTab`: 访问当前活动标签页
-- `storage`: 存储检测到的视频信息
-- `downloads`: 触发文件下载
-- `webRequest`: 监控网络请求
-- `<all_urls>`: 在所有网站上工作
+### 支持的视频格式
 
-## 常见问题
+- **直接下载**: MP4, WebM, AVI, MOV
+- **流媒体**: HLS (m3u8), DASH (mpd)
+- **视频网站**: YouTube, Bilibili, 优酷等（需要特殊处理）
 
-### Q: 为什么某些视频无法下载？
-A: 可能的原因：
-- 视频受 DRM 保护
-- 需要登录或付费
-- 使用了特殊的流媒体技术
-- 视频 URL 有时效性
+## 项目结构
 
-### Q: 检测不到视频怎么办？
-A: 尝试以下方法：
-- 点击"刷新检测"按钮
-- 播放视频后再检测
-- 等待页面完全加载
-- 检查是否被网站的反爬虫机制阻止
-
-### Q: 下载的文件无法播放？
-A: 可能的原因：
-- 下载的是视频片段而非完整文件
-- 需要使用专门的播放器
-- 文件格式不被本地播放器支持
-
-### Q: 如何下载 HLS (m3u8) 视频？
-A: 
-- 扩展可以检测 m3u8 文件
-- 下载的是播放列表文件
-- 需要使用支持 HLS 的工具下载完整视频
-
-## 开发说明
-
-### 文件结构
 ```
 fetchVideo/
-├── manifest.json          # 扩展配置文件
-├── background.js          # 后台脚本
-├── content.js            # 内容脚本
-├── inject.js             # 注入脚本
+├── manifest.json          # 插件配置文件
 ├── popup.html            # 弹窗界面
-├── popup.js              # 弹窗脚本
-├── icons/                # 图标文件
-│   ├── icon.svg
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
-├── generate_icons.sh     # 图标生成脚本
-└── README.md            # 说明文档
+├── popup.js              # 弹窗逻辑
+├── content.js            # 内容脚本
+├── background.js         # 后台脚本
+├── options.html          # 设置页面
+├── options.js            # 设置逻辑
+├── styles/
+│   ├── popup.css         # 弹窗样式
+│   └── options.css       # 设置页面样式
+├── scripts/
+│   ├── video-detector.js # 视频检测核心
+│   ├── downloader.js     # 下载处理
+│   └── utils.js          # 工具函数
+└── icons/
+    ├── icon16.png        # 16x16图标
+    ├── icon48.png        # 48x48图标
+    └── icon128.png       # 128x128图标
 ```
 
-### 本地开发
+## 开发计划
 
-1. 克隆或下载源代码
-2. 在 Chrome 中加载扩展
-3. 修改代码后重新加载扩展
-4. 在控制台查看调试信息
+### Phase 1: 基础功能
+- [x] 项目初始化
+- [ ] 基础视频检测
+- [ ] 简单下载功能
+- [ ] 基础UI界面
 
-### 贡献代码
+### Phase 2: 增强功能
+- [ ] 流媒体支持
+- [ ] 批量下载
+- [ ] 下载管理
+- [ ] 格式转换
 
-欢迎提交 Issue 和 Pull Request！
+### Phase 3: 高级功能
+- [ ] 视频网站适配
+- [ ] 自定义下载规则
+- [ ] 云端同步设置
+- [ ] 插件统计分析
+
+## 注意事项
+
+### 法律合规
+- 仅用于个人学习和研究
+- 请遵守视频网站的服务条款
+- 不得用于商业用途或侵犯版权
+
+### 技术限制
+- 某些网站可能有防下载机制
+- 加密视频流需要特殊处理
+- 大文件下载可能需要分片处理
+
+### 浏览器兼容性
+- 主要支持Chrome 88+
+- 部分功能需要Edge 88+
+- 不支持Firefox（Manifest V3限制）
+
+## 故障排除
+
+### 常见问题
+
+**Q: 检测不到视频**
+A: 检查网页是否完全加载，某些动态加载的视频需要等待
+
+**Q: 下载失败**
+A: 检查网络连接，某些视频可能有防盗链保护
+
+**Q: 插件无法启动**
+A: 检查Chrome版本，确保支持Manifest V3
+
+### 调试方法
+
+1. 打开开发者工具
+2. 查看Console标签页的错误信息
+3. 检查Network标签页的网络请求
+4. 在插件管理页面查看错误日志
+
+## 贡献指南
+
+1. Fork本项目
+2. 创建特性分支: `git checkout -b feature/new-feature`
+3. 提交更改: `git commit -am 'Add new feature'`
+4. 推送分支: `git push origin feature/new-feature`
+5. 创建Pull Request
+
+## 开发环境搭建
+
+```bash
+# 克隆项目
+git clone https://github.com/your-username/chrome-extension.git
+cd chrome-extension/fetchVideo
+
+# 安装依赖（如果需要）
+npm install
+
+# 开发模式
+npm run dev
+
+# 构建生产版本
+npm run build
+```
 
 ## 许可证
 
-MIT License
+MIT License - 详见 [LICENSE](../LICENSE) 文件
 
 ## 更新日志
 
-### v1.0 (2025-08-31)
-- ✅ 初始版本发布
-- ✅ 支持多种视频格式检测
-- ✅ 实现基本下载功能
-- ✅ 添加用户界面
-- ✅ 支持流媒体检测
+### v0.1.0 (开发中)
+- 初始化项目结构
+- 基础功能规划
+- 图标设计完成
 
-## 免责声明
+## 联系方式
 
-本扩展仅用于技术学习和合法的视频下载。请遵守相关网站的服务条款和版权法律，不要下载受版权保护的内容。开发者对用户的使用行为不承担任何责任。
+- 项目主页: https://github.com/your-username/chrome-extension
+- 问题反馈: https://github.com/your-username/chrome-extension/issues
+- 作者邮箱: your-email@example.com
+
+---
+
+**免责声明**: 本插件仅用于技术学习和个人使用，请遵守相关法律法规和网站服务条款。

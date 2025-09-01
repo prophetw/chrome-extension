@@ -1,46 +1,56 @@
 {
   "manifest_version": 3,
-  "name": "视频下载助手",
-  "version": "1.0",
-  "description": "可以下载各种类型的在线视频，包括 HLS 流媒体视频（m3u8）、mp4、webm、flv 等",
+  "name": "FetchVideo - 视频下载器",
+  "version": "0.1.0",
+  "description": "智能检测并下载网页视频流，支持多种格式和流媒体协议",
+  
   "permissions": [
     "activeTab",
-    "storage",
     "downloads",
+    "storage",
     "webRequest",
-    "scripting"
+    "contextMenus"
   ],
+  
   "host_permissions": [
-    "<all_urls>"
+    "*://*/*"
   ],
+  
   "background": {
     "service_worker": "background.js"
   },
+  
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
+      "matches": ["*://*/*"],
+      "js": ["scripts/utils.js", "scripts/video-detector.js", "content.js"],
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
+  
   "action": {
     "default_popup": "popup.html",
-    "default_title": "视频下载助手",
+    "default_title": "FetchVideo - 视频下载器",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
+  
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  
+  "options_page": "options.html",
+  
   "web_accessible_resources": [
     {
-      "resources": ["inject.js"],
-      "matches": ["<all_urls>"]
+      "resources": ["scripts/*.js"],
+      "matches": ["*://*/*"]
     }
   ]
 }

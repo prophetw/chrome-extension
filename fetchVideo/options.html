@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FetchVideo 设置</title>
+  <link rel="stylesheet" href="styles/options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <img src="icons/icon48.png" alt="FetchVideo" class="logo-icon">
+          <h1>FetchVideo 设置</h1>
+        </div>
+        <div class="version">v0.1.0</div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="settings-section">
+        <h2>下载设置</h2>
+        
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">默认下载目录</span>
+            <span class="label-desc">选择视频下载的默认文件夹</span>
+          </label>
+          <div class="setting-control">
+            <input type="text" id="download-folder" value="FetchVideo" placeholder="FetchVideo">
+            <button id="folder-help" class="help-btn" title="帮助">?</button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">文件命名规则</span>
+            <span class="label-desc">自定义下载文件的命名方式</span>
+          </label>
+          <div class="setting-control">
+            <select id="naming-rule">
+              <option value="title">视频标题</option>
+              <option value="title_timestamp">标题 + 时间戳</option>
+              <option value="domain_title">域名 + 标题</option>
+              <option value="custom">自定义格式</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item" id="custom-naming" style="display: none;">
+          <label class="setting-label">
+            <span class="label-text">自定义命名格式</span>
+            <span class="label-desc">可用变量: {title}, {domain}, {timestamp}, {quality}</span>
+          </label>
+          <div class="setting-control">
+            <input type="text" id="custom-format" placeholder="{domain}_{title}_{timestamp}">
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">同时下载数量限制</span>
+            <span class="label-desc">限制同时进行的下载任务数量</span>
+          </label>
+          <div class="setting-control">
+            <select id="concurrent-downloads">
+              <option value="1">1 个</option>
+              <option value="2">2 个</option>
+              <option value="3" selected>3 个</option>
+              <option value="5">5 个</option>
+              <option value="10">10 个</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">重复文件处理</span>
+            <span class="label-desc">当下载文件已存在时的处理方式</span>
+          </label>
+          <div class="setting-control">
+            <select id="duplicate-handling">
+              <option value="uniquify" selected>自动重命名</option>
+              <option value="overwrite">覆盖现有文件</option>
+              <option value="prompt">每次询问</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>检测设置</h2>
+        
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">自动检测</span>
+            <span class="label-desc">页面加载时自动检测视频</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="auto-detect" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">检测深度</span>
+            <span class="label-desc">更深度的检测可能发现更多视频，但会影响性能</span>
+          </label>
+          <div class="setting-control">
+            <select id="detection-depth">
+              <option value="basic">基础检测</option>
+              <option value="normal" selected>标准检测</option>
+              <option value="deep">深度检测</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">最小视频时长</span>
+            <span class="label-desc">忽略短于指定时长的视频（秒）</span>
+          </label>
+          <div class="setting-control">
+            <input type="number" id="min-duration" value="5" min="0" max="3600">
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">支持的格式</span>
+            <span class="label-desc">选择要检测的视频格式</span>
+          </label>
+          <div class="setting-control">
+            <div class="checkbox-group">
+              <label><input type="checkbox" value="mp4" checked> MP4</label>
+              <label><input type="checkbox" value="webm" checked> WebM</label>
+              <label><input type="checkbox" value="avi"> AVI</label>
+              <label><input type="checkbox" value="mov"> MOV</label>
+              <label><input type="checkbox" value="mkv"> MKV</label>
+              <label><input type="checkbox" value="flv"> FLV</label>
+              <label><input type="checkbox" value="m3u8" checked> HLS</label>
+              <label><input type="checkbox" value="mpd"> DASH</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>界面设置</h2>
+        
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">显示视频预览</span>
+            <span class="label-desc">在列表中显示视频缩略图</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="show-thumbnails">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">紧凑模式</span>
+            <span class="label-desc">使用更紧凑的界面布局</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="compact-mode">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">显示技术信息</span>
+            <span class="label-desc">显示视频的技术详细信息</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="show-technical-info" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>高级设置</h2>
+        
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">启用调试模式</span>
+            <span class="label-desc">在控制台输出详细的调试信息</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="debug-mode">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">网络请求拦截</span>
+            <span class="label-desc">拦截网络请求以检测视频流</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="network-interception" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="label-text">数据收集</span>
+            <span class="label-desc">收集匿名使用数据以改进插件</span>
+          </label>
+          <div class="setting-control">
+            <label class="switch">
+              <input type="checkbox" id="analytics">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="actions">
+          <button id="reset-btn" class="btn btn-secondary">恢复默认</button>
+          <button id="export-btn" class="btn btn-secondary">导出设置</button>
+          <button id="import-btn" class="btn btn-secondary">导入设置</button>
+          <button id="save-btn" class="btn btn-primary">保存设置</button>
+        </div>
+        <div class="status" id="status-message" style="display: none;"></div>
+      </div>
+    </footer>
+  </div>
+
+  <input type="file" id="import-file" accept=".json" style="display: none;">
+  
+  <script src="scripts/utils.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
